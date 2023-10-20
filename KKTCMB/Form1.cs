@@ -9,9 +9,12 @@
 //
 // Copyright (c) 2023 Deniz DEMIRDELEN
 
+using Newtonsoft.Json;
+
 using System.Data.SqlServerCe;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 using System.Xml;
 
 namespace KKTCMB
@@ -22,20 +25,29 @@ namespace KKTCMB
         private readonly HttpClient client = new();
         private readonly SqlCeConnection connection = new($"Data Source={Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "", "Database.sdf")}");
 
+        private enum DataSource { KKTCMB, TCMB };
+        private DataSource currentSource = DataSource.KKTCMB;
+
         public Form1()
         {
             InitializeComponent();
 
             dateTimePicker.Value = DateTime.Today;
             dateTimePicker.MaxDate = DateTime.Today;
+
+            HandleChanges();
         }
 
-        private async void HandleButtons()
+        private async void HandleChanges()
         {
+            saveButton.Enabled = false;
+            dataGridView.Rows.Clear();
+            dataGridView.Focus();
+
             await connection.OpenAsync();
 
             try {
-                var selectCommand = new SqlCeCommand($"SELECT tarih FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}'", connection);
+                var selectCommand = new SqlCeCommand($"SELECT tarih FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}' AND kaynak = {(int)currentSource}", connection);
                 var reader = await selectCommand.ExecuteReaderAsync();
                 var exists = await reader.ReadAsync();
 
@@ -49,40 +61,56 @@ namespace KKTCMB
             connection.Close();
         }
 
-        private void dateTimePicker_ValueChanged(object sender, EventArgs e)
+        private void genericValueChangedEvent(object sender, EventArgs e)
         {
-            saveButton.Enabled = false;
-            dataGridView.Rows.Clear();
-            dataGridView.Focus();
+            if (sender == sourceComboBox)
+                currentSource = sourceComboBox.Text == "KKTCMB" ? DataSource.KKTCMB : DataSource.TCMB;
 
-            HandleButtons();
+            HandleChanges();
         }
 
-        private void todayButton_Click(object sender, EventArgs e)
+        private void dateTimePicker_CloseUp(object sender, EventArgs e)
         {
-            dateTimePicker.Value = DateTime.Today;
+            HandleChanges();
         }
 
         private async void getButton_Click(object sender, EventArgs e)
         {
             if (dataGridView.Rows.Count != 0) {
-                if (MessageBox.Show("Seçili tarihe ait döviz bilgileri zaten tabloda mevcut. Yinede veriler yenilensin mi?", "KKTCMB Döviz Kurları", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                if (MessageBox.Show("Seçili tarihe ait döviz bilgileri zaten tabloda mevcut. Yinede veriler yenilensin mi?", "Merkez Bankası Döviz Kurları", MessageBoxButtons.YesNo) != DialogResult.Yes)
                     return;
             }
 
-            try {
-                var selectedDate = dateTimePicker.Value;
+            var selectedDate = dateTimePicker.Value;
 
-                var response = await client.GetAsync($"http://www.mb.gov.ct.tr/kur/tarih/{dateTimePicker.Value:yyyyMMdd}");
+            var isTCMB = sourceComboBox.Text == "TCMB";
+            var isHTML = selectedDate < new DateTime(2011, 4, 9);
+            var isISO = selectedDate < new DateTime(2008, 2, 8);
+
+            try {
+                var response = await client.GetAsync((isTCMB ? "https://api.demirdelen.net/tcmb/kur/tarih/" : "http://www.mb.gov.ct.tr/kur/tarih/") + $"{selectedDate:yyyyMMdd}");
                 if (!response.IsSuccessStatusCode)
                     throw new HttpRequestException("Kur bilgileri alınırken bir hata oluştu.");
 
-                var document = new XmlDocument();
-                var content = await new StreamReader(await response.Content.ReadAsStreamAsync()).ReadToEndAsync();
-                if (content == "")
-                    throw new Exception("Seçili tarih için kur bilgileri bulunamadı.");
+                var buffer = await response.Content.ReadAsByteArrayAsync();
+                var content = Encoding.GetEncoding(isHTML && !isTCMB ? (isISO ? "ISO-8859-9" : "UTF-16") : "UTF-8").GetString(buffer, 0, buffer.Length);
 
+                if (content == "")
+                    throw new Exception("Seçili tarih için kur bilgileri alınamadı." + (isHTML ? "\nBu tarihin bir resmi tatile veya haftasonuna denk gelmediğinden emin olun." : ""));
+
+                if (isTCMB) {
+                    ParseJSON(content);
+                    return;
+                }
+
+                if (isHTML) {
+                    ParseHTML(content);
+                    return;
+                }
+
+                var document = new XmlDocument();
                 document.LoadXml(content);
+
                 dataGridView.Rows.Clear();
                 dataGridView.Focus();
 
@@ -100,6 +128,47 @@ namespace KKTCMB
             }
         }
 
+        private void ParseHTML(string content)
+        {
+            dataGridView.Rows.Clear();
+            dataGridView.Focus();
+
+            var lines = content.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines.Skip(Array.FindLastIndex(lines, x => x.Contains("_____________________________")) + 1)) {
+                if (line.Replace(" ", "").Contains("ÇAPRAZ"))
+                    break;
+
+                var chunks = line.Split("  ", StringSplitOptions.RemoveEmptyEntries);
+                var birim = chunks[0].Split(" ", 2);
+                var sadeceEf = chunks.Length < 5;
+
+                var culture = new CultureInfo("tr-TR", false);
+                dataGridView.Rows.Add(birim[0], IsoMap.GetISOCode(birim[1]), culture.TextInfo.ToTitleCase(birim[1].ToLower(culture)),
+                    sadeceEf ? "" : chunks[1], sadeceEf ? "" : chunks[2], chunks.ElementAtOrDefault(sadeceEf ? 1 : 3), chunks.ElementAtOrDefault(sadeceEf ? 2 : 4));
+            }
+
+            saveButton.Enabled = true;
+        }
+
+        private void ParseJSON(string content)
+        {
+            dataGridView.Rows.Clear();
+            dataGridView.Focus();
+
+            var json = JsonConvert.DeserializeObject<dynamic>(content)
+                ?? throw new Exception("JSON yanıtı ayrıştırılamadı.");
+
+            var items = json.items[0];
+            var kurlar = new string[] { "USD", "AUD", "DKK", "EUR", "GBP", "CHF", "SEK", "CAD", "KWD", "NOK", "SAR", "JPY" };
+
+            var culture = new CultureInfo("tr-TR", false);
+            foreach (var kur in kurlar)
+                dataGridView.Rows.Add(kur == "JPY" ? 100 : 1, kur, IsoMap.GetCurrencyName(kur, culture),
+                    items[$"TP_DK_{kur}_A"], items[$"TP_DK_{kur}_S"], items[$"TP_DK_{kur}_A_EF"], items[$"TP_DK_{kur}_S_EF"]);
+
+            saveButton.Enabled = true;
+        }
+
         private async void saveButton_Click(object sender, EventArgs e)
         {
             if (!saveButton.Enabled)
@@ -108,27 +177,27 @@ namespace KKTCMB
             await connection.OpenAsync();
 
             try {
-                var selectCommand = new SqlCeCommand($"SELECT tarih FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}'", connection);
+                var selectCommand = new SqlCeCommand($"SELECT tarih FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}' AND kaynak = {(int)currentSource}", connection);
                 var reader = await selectCommand.ExecuteReaderAsync();
                 if (await reader.ReadAsync()) {
-                    if (MessageBox.Show("Veritabanında bu tarihe ait bir kayıt zaten mevcut. Üstüne yazılsın mı?", "KKTCMB Döviz Kurları", MessageBoxButtons.YesNo) != DialogResult.Yes) {
+                    if (MessageBox.Show("Veritabanında bu tarihe ait bir kayıt zaten mevcut. Üstüne yazılsın mı?", "Merkez Bankası Döviz Kurları", MessageBoxButtons.YesNo) != DialogResult.Yes) {
                         connection.Close();
                         return;
                     }
 
-                    var deleteCommand = new SqlCeCommand($"DELETE FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}'", connection);
+                    var deleteCommand = new SqlCeCommand($"DELETE FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}' AND kaynak = {(int)currentSource}", connection);
                     await deleteCommand.ExecuteNonQueryAsync();
                 }
 
                 foreach (DataGridViewRow row in dataGridView.Rows) {
-                    var command = new SqlCeCommand("INSERT INTO KKTCMB (tarih, siralama, birim, sembol, isim, doviz_alis, doviz_satis, efektif_alis, efektif_satis) " +
-                        $"VALUES ('{dateTimePicker.Value:yyyy-MM-dd}', {row.Index}, {row.Cells[0].Value}, '{row.Cells[1].Value}', '{row.Cells[2].Value}', {row.Cells[3].Value}, {row.Cells[4].Value}, {row.Cells[5].Value}, {row.Cells[6].Value})",
+                    var command = new SqlCeCommand("INSERT INTO kktcmb (tarih, kaynak, siralama, birim, sembol, isim, doviz_alis, doviz_satis, efektif_alis, efektif_satis) " +
+                        $"VALUES ('{dateTimePicker.Value:yyyy-MM-dd}', {(int)currentSource}, {row.Index}, {row.Cells[0].Value}, '{row.Cells[1].Value}', '{row.Cells[2].Value}', {row.Cells[3].Value}, {row.Cells[4].Value}, {row.Cells[5].Value}, {row.Cells[6].Value})",
                         connection);
 
                     await command.ExecuteNonQueryAsync();
                 }
 
-                MessageBox.Show($"{dateTimePicker.Value.ToLongDateString()} gününe ait döviz kurları bilgileri veritabanına kaydedildi.", "KKTCMB Döviz Kurları");
+                MessageBox.Show($"{dateTimePicker.Value.ToLongDateString()} gününe ve {sourceComboBox.Text} kaynağına ait döviz kurları bilgileri veritabanına kaydedildi.", "Merkez Bankası Döviz Kurları");
             } catch (Exception ex) {
                 MessageBox.Show(ex.Message);
             }
@@ -142,7 +211,7 @@ namespace KKTCMB
                 return;
 
             if (dataGridView.Rows.Count != 0) {
-                MessageBox.Show("Seçili tarihe ait döviz bilgileri zaten tabloda mevcut.", "KKTCMB Döviz Kurları");
+                MessageBox.Show("Seçili tarihe ait döviz bilgileri zaten tabloda mevcut.", "Merkez Bankası Döviz Kurları");
                 return;
             }
 
@@ -150,7 +219,7 @@ namespace KKTCMB
 
             try {
                 var command = new SqlCeCommand(
-                $"SELECT birim, sembol, isim, doviz_alis, doviz_satis, efektif_alis, efektif_satis FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}' ORDER BY siralama ASC",
+                $"SELECT birim, sembol, isim, doviz_alis, doviz_satis, efektif_alis, efektif_satis FROM kktcmb WHERE tarih = '{dateTimePicker.Value:yyyy-MM-dd}' AND kaynak = {(int)currentSource} ORDER BY siralama ASC",
                 connection);
 
                 var reader = await command.ExecuteReaderAsync();
@@ -168,7 +237,7 @@ namespace KKTCMB
 
         private void aboutButton_Click(object sender, EventArgs e)
         {
-            MessageBox.Show($"Sürüm: {Assembly.GetExecutingAssembly().GetName().Version}\nDeniz Demirdelen © 2023", "KKTCMB Döviz Kurları");
+            MessageBox.Show($"Sürüm: {Assembly.GetExecutingAssembly().GetName().Version}\nDeniz Demirdelen © 2023", "Merkez Bankası Döviz Kurları");
         }
 
         private void exitButton_Click(object sender, EventArgs e)

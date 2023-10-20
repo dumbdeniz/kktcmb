@@ -38,7 +38,6 @@
             EAlış = new DataGridViewTextBoxColumn();
             ESatış = new DataGridViewTextBoxColumn();
             dateGroupBox = new GroupBox();
-            todayButton = new Button();
             dateTimePicker = new DateTimePicker();
             getButton = new Button();
             showButton = new Button();
@@ -47,10 +46,13 @@
             appGroupBox = new GroupBox();
             exitButton = new Button();
             aboutButton = new Button();
+            sourceGroupBox = new GroupBox();
+            sourceComboBox = new ComboBox();
             ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             dateGroupBox.SuspendLayout();
             dataGroupBox.SuspendLayout();
             appGroupBox.SuspendLayout();
+            sourceGroupBox.SuspendLayout();
             SuspendLayout();
             // 
             // dataGridView
@@ -82,7 +84,7 @@
             dataGridView.Name = "dataGridView";
             dataGridView.ReadOnly = true;
             dataGridView.RowTemplate.Height = 25;
-            dataGridView.Size = new Size(743, 325);
+            dataGridView.Size = new Size(779, 325);
             dataGridView.TabIndex = 7;
             // 
             // Birim
@@ -107,7 +109,7 @@
             İsim.Name = "İsim";
             İsim.ReadOnly = true;
             İsim.Resizable = DataGridViewTriState.False;
-            İsim.Width = 170;
+            İsim.Width = 169;
             // 
             // Alış
             // 
@@ -115,6 +117,7 @@
             Alış.Name = "Alış";
             Alış.ReadOnly = true;
             Alış.Resizable = DataGridViewTriState.False;
+            Alış.Width = 105;
             // 
             // Satış
             // 
@@ -122,6 +125,7 @@
             Satış.Name = "Satış";
             Satış.ReadOnly = true;
             Satış.Resizable = DataGridViewTriState.False;
+            Satış.Width = 105;
             // 
             // EAlış
             // 
@@ -129,6 +133,7 @@
             EAlış.Name = "EAlış";
             EAlış.ReadOnly = true;
             EAlış.Resizable = DataGridViewTriState.False;
+            EAlış.Width = 105;
             // 
             // ESatış
             // 
@@ -136,37 +141,27 @@
             ESatış.Name = "ESatış";
             ESatış.ReadOnly = true;
             ESatış.Resizable = DataGridViewTriState.False;
+            ESatış.Width = 105;
             // 
             // dateGroupBox
             // 
-            dateGroupBox.Controls.Add(todayButton);
             dateGroupBox.Controls.Add(dateTimePicker);
             dateGroupBox.Location = new Point(12, 10);
             dateGroupBox.Name = "dateGroupBox";
-            dateGroupBox.Size = new Size(278, 59);
+            dateGroupBox.Size = new Size(209, 59);
             dateGroupBox.TabIndex = 1;
             dateGroupBox.TabStop = false;
             dateGroupBox.Text = "Tarih";
             // 
-            // todayButton
-            // 
-            todayButton.Location = new Point(205, 22);
-            todayButton.Name = "todayButton";
-            todayButton.Size = new Size(65, 23);
-            todayButton.TabIndex = 1;
-            todayButton.Text = "Bugün";
-            todayButton.UseVisualStyleBackColor = true;
-            todayButton.Click += todayButton_Click;
-            // 
             // dateTimePicker
             // 
             dateTimePicker.Location = new Point(6, 22);
-            dateTimePicker.MinDate = new DateTime(2011, 4, 9, 0, 0, 0, 0);
+            dateTimePicker.MinDate = new DateTime(2001, 11, 27, 0, 0, 0, 0);
             dateTimePicker.Name = "dateTimePicker";
             dateTimePicker.Size = new Size(193, 23);
             dateTimePicker.TabIndex = 0;
             dateTimePicker.Value = new DateTime(2023, 10, 12, 0, 0, 0, 0);
-            dateTimePicker.ValueChanged += dateTimePicker_ValueChanged;
+            dateTimePicker.CloseUp += dateTimePicker_CloseUp;
             // 
             // getButton
             // 
@@ -205,7 +200,7 @@
             dataGroupBox.Controls.Add(getButton);
             dataGroupBox.Controls.Add(saveButton);
             dataGroupBox.Controls.Add(showButton);
-            dataGroupBox.Location = new Point(296, 10);
+            dataGroupBox.Location = new Point(368, 10);
             dataGroupBox.Name = "dataGroupBox";
             dataGroupBox.Size = new Size(249, 59);
             dataGroupBox.TabIndex = 2;
@@ -216,9 +211,9 @@
             // 
             appGroupBox.Controls.Add(exitButton);
             appGroupBox.Controls.Add(aboutButton);
-            appGroupBox.Location = new Point(551, 10);
+            appGroupBox.Location = new Point(623, 10);
             appGroupBox.Name = "appGroupBox";
-            appGroupBox.Size = new Size(204, 59);
+            appGroupBox.Size = new Size(168, 59);
             appGroupBox.TabIndex = 3;
             appGroupBox.TabStop = false;
             appGroupBox.Text = "Uygulama";
@@ -243,22 +238,49 @@
             aboutButton.UseVisualStyleBackColor = true;
             aboutButton.Click += aboutButton_Click;
             // 
+            // sourceGroupBox
+            // 
+            sourceGroupBox.Controls.Add(sourceComboBox);
+            sourceGroupBox.Location = new Point(227, 10);
+            sourceGroupBox.Name = "sourceGroupBox";
+            sourceGroupBox.Size = new Size(135, 59);
+            sourceGroupBox.TabIndex = 5;
+            sourceGroupBox.TabStop = false;
+            sourceGroupBox.Text = "Kaynak";
+            // 
+            // sourceComboBox
+            // 
+            sourceComboBox.FormattingEnabled = true;
+            sourceComboBox.Items.AddRange(new object[] { "KKTCMB", "TCMB" });
+            sourceComboBox.Location = new Point(6, 22);
+            sourceComboBox.Name = "sourceComboBox";
+            sourceComboBox.Size = new Size(121, 23);
+            sourceComboBox.TabIndex = 1;
+            sourceComboBox.Text = "KKTCMB";
+            sourceComboBox.TextChanged += genericValueChangedEvent;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(764, 411);
+            ClientSize = new Size(799, 411);
+            Controls.Add(sourceGroupBox);
             Controls.Add(appGroupBox);
             Controls.Add(dataGroupBox);
             Controls.Add(dateGroupBox);
             Controls.Add(dataGridView);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
+            MaximumSize = new Size(815, 450);
+            MinimumSize = new Size(815, 450);
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "KKTCMB Döviz Kurları";
+            Text = "Merkez Bankası Döviz Kurları";
             ((System.ComponentModel.ISupportInitialize)dataGridView).EndInit();
             dateGroupBox.ResumeLayout(false);
             dataGroupBox.ResumeLayout(false);
             appGroupBox.ResumeLayout(false);
+            sourceGroupBox.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -274,7 +296,8 @@
         private GroupBox appGroupBox;
         private Button exitButton;
         private Button aboutButton;
-        private Button todayButton;
+        private GroupBox sourceGroupBox;
+        private ComboBox sourceComboBox;
         private DataGridViewTextBoxColumn Birim;
         private DataGridViewTextBoxColumn Sembol;
         private DataGridViewTextBoxColumn İsim;
