@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Globalization;
 
 namespace KKTCMB
 {
@@ -52,6 +48,11 @@ namespace KKTCMB
             }
 
             return "";
+        }
+
+        public static string GetCurrencyName(string isoCode, CultureInfo culture)
+        {
+            return culture.TextInfo.ToTitleCase(Iso4217CurrencyMap.LastOrDefault(x => x.Value == isoCode).Key.ToLower(culture));
         }
 
         //https://stackoverflow.com/a/13793600
