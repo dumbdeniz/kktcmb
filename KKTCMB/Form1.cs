@@ -144,7 +144,7 @@ namespace KKTCMB
 
                 var culture = new CultureInfo("tr-TR", false);
                 dataGridView.Rows.Add(birim[0], IsoMap.GetISOCode(birim[1]), culture.TextInfo.ToTitleCase(birim[1].ToLower(culture)),
-                    sadeceEf ? "" : chunks[1], sadeceEf ? "" : chunks[2], chunks.ElementAtOrDefault(sadeceEf ? 1 : 3), chunks.ElementAtOrDefault(sadeceEf ? 2 : 4));
+                    sadeceEf ? "" : chunks[1], sadeceEf ? "" : chunks[2], chunks.ElementAtOrDefault(sadeceEf ? 1 : 3) ?? "", chunks.ElementAtOrDefault(sadeceEf ? 2 : 4) ?? "");
             }
 
             saveButton.Enabled = true;
@@ -191,7 +191,7 @@ namespace KKTCMB
 
                 foreach (DataGridViewRow row in dataGridView.Rows) {
                     var command = new SqlCeCommand("INSERT INTO kktcmb (tarih, kaynak, siralama, birim, sembol, isim, doviz_alis, doviz_satis, efektif_alis, efektif_satis) " +
-                        $"VALUES ('{dateTimePicker.Value:yyyy-MM-dd}', {(int)currentSource}, {row.Index}, {row.Cells[0].Value}, '{row.Cells[1].Value}', '{row.Cells[2].Value}', {row.Cells[3].Value}, {row.Cells[4].Value}, {row.Cells[5].Value}, {row.Cells[6].Value})",
+                        $"VALUES ('{dateTimePicker.Value:yyyy-MM-dd}', {(int)currentSource}, {row.Index}, {row.Cells[0].Value}, '{row.Cells[1].Value}', '{row.Cells[2].Value}', '{row.Cells[3].Value}', '{row.Cells[4].Value}', '{row.Cells[5].Value}', '{row.Cells[6].Value}')",
                         connection);
 
                     await command.ExecuteNonQueryAsync();
