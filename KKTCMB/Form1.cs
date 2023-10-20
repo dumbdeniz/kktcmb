@@ -34,6 +34,8 @@ namespace KKTCMB
 
             dateTimePicker.Value = DateTime.Today;
             dateTimePicker.MaxDate = DateTime.Today;
+
+            HandleChanges();
         }
 
         private async void HandleChanges()
