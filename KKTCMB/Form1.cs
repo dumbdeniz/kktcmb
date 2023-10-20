@@ -12,7 +12,10 @@
 using System.Data.SqlServerCe;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 using System.Xml;
+
+using static System.Net.Mime.MediaTypeNames;
 
 namespace KKTCMB
 {
@@ -26,7 +29,7 @@ namespace KKTCMB
         {
             InitializeComponent();
 
-            dateTimePicker.Value = DateTime.Today;
+            dateTimePicker.Value = new DateTime(2010, 10, 19);//DateTime.Today;
             dateTimePicker.MaxDate = DateTime.Today;
         }
 
@@ -53,9 +56,9 @@ namespace KKTCMB
         {
             saveButton.Enabled = false;
             dataGridView.Rows.Clear();
-            dataGridView.Focus();
+            //dataGridView.Focus();
 
-            HandleButtons();
+            //HandleButtons();
         }
 
         private void todayButton_Click(object sender, EventArgs e)
@@ -70,19 +73,42 @@ namespace KKTCMB
                     return;
             }
 
-            try {
-                var selectedDate = dateTimePicker.Value;
+            var selectedDate = dateTimePicker.Value;
 
-                var response = await client.GetAsync($"http://www.mb.gov.ct.tr/kur/tarih/{dateTimePicker.Value:yyyyMMdd}");
+            var isTCMB = sourceComboBox.Text == "TCMB";
+            var isHTML = selectedDate < new DateTime(2011, 4, 9);
+            var isISO = selectedDate < new DateTime(2008, 2, 8);
+
+            try {
+                
+
+                var response = await client.GetAsync((isTCMB ? "https://api.demirdelen.net/tcmb/kur/tarih/" : $"http://www.mb.gov.ct.tr/kur/tarih/") + $"{selectedDate:yyyyMMdd}");
                 if (!response.IsSuccessStatusCode)
                     throw new HttpRequestException("Kur bilgileri alınırken bir hata oluştu.");
 
-                var document = new XmlDocument();
+                var buffer = await response.Content.ReadAsByteArrayAsync();
+                var deneme = Encoding.GetEncoding("ISO-8859-9").GetString(buffer, 0, buffer.Length);
+
+                MessageBox.Show(deneme, "iso");
+                //return;
+
                 var content = await new StreamReader(await response.Content.ReadAsStreamAsync()).ReadToEndAsync();
                 if (content == "")
                     throw new Exception("Seçili tarih için kur bilgileri bulunamadı.");
 
+                if (isTCMB) {
+                    ParseJSON(content);
+                    return;
+                }
+
+                if (selectedDate < new DateTime(2011, 4, 9)) {
+                    ParseHTML(content);
+                    return;
+                }
+
+                var document = new XmlDocument();
                 document.LoadXml(content);
+
                 dataGridView.Rows.Clear();
                 dataGridView.Focus();
 
@@ -98,6 +124,25 @@ namespace KKTCMB
                 dataGridView.Rows.Clear();
                 saveButton.Enabled = false;
             }
+        }
+
+        private void ParseHTML(string content)
+        {
+            MessageBox.Show(content);
+            var lines = content.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+
+            foreach(var line in lines.Skip(11)) {
+                if (line.Replace(" ", "").Contains("ÇAPRAZ"))
+                    break;
+
+                var chunks = line.Split("  ", StringSplitOptions.RemoveEmptyEntries);
+
+            }
+        }
+
+        private void ParseJSON(string content)
+        {
+
         }
 
         private async void saveButton_Click(object sender, EventArgs e)
