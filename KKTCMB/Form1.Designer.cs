@@ -30,13 +30,6 @@
             var dataGridViewCellStyle1 = new DataGridViewCellStyle();
             var dataGridViewCellStyle2 = new DataGridViewCellStyle();
             dataGridView = new DataGridView();
-            Birim = new DataGridViewTextBoxColumn();
-            Sembol = new DataGridViewTextBoxColumn();
-            İsim = new DataGridViewTextBoxColumn();
-            Alış = new DataGridViewTextBoxColumn();
-            Satış = new DataGridViewTextBoxColumn();
-            EAlış = new DataGridViewTextBoxColumn();
-            ESatış = new DataGridViewTextBoxColumn();
             dateGroupBox = new GroupBox();
             dateTimePicker = new DateTimePicker();
             getButton = new Button();
@@ -48,6 +41,13 @@
             aboutButton = new Button();
             sourceGroupBox = new GroupBox();
             sourceComboBox = new ComboBox();
+            Birim = new DataGridViewTextBoxColumn();
+            Sembol = new DataGridViewTextBoxColumn();
+            İsim = new DataGridViewTextBoxColumn();
+            Alış = new DataGridViewTextBoxColumn();
+            Satış = new DataGridViewTextBoxColumn();
+            EAlış = new DataGridViewTextBoxColumn();
+            ESatış = new DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)dataGridView).BeginInit();
             dateGroupBox.SuspendLayout();
             dataGroupBox.SuspendLayout();
@@ -86,58 +86,6 @@
             dataGridView.RowTemplate.Height = 25;
             dataGridView.Size = new Size(779, 325);
             dataGridView.TabIndex = 7;
-            // 
-            // Birim
-            // 
-            Birim.HeaderText = "Birim";
-            Birim.Name = "Birim";
-            Birim.ReadOnly = true;
-            Birim.Resizable = DataGridViewTriState.False;
-            Birim.Width = 65;
-            // 
-            // Sembol
-            // 
-            Sembol.HeaderText = "Sembol";
-            Sembol.Name = "Sembol";
-            Sembol.ReadOnly = true;
-            Sembol.Resizable = DataGridViewTriState.False;
-            Sembol.Width = 65;
-            // 
-            // İsim
-            // 
-            İsim.HeaderText = "İsim";
-            İsim.Name = "İsim";
-            İsim.ReadOnly = true;
-            İsim.Resizable = DataGridViewTriState.False;
-            İsim.Width = 170;
-            // 
-            // Alış
-            // 
-            Alış.HeaderText = "Döviz Alış";
-            Alış.Name = "Alış";
-            Alış.ReadOnly = true;
-            Alış.Resizable = DataGridViewTriState.False;
-            // 
-            // Satış
-            // 
-            Satış.HeaderText = "Döviz Satış";
-            Satış.Name = "Satış";
-            Satış.ReadOnly = true;
-            Satış.Resizable = DataGridViewTriState.False;
-            // 
-            // EAlış
-            // 
-            EAlış.HeaderText = "Efektif Alış";
-            EAlış.Name = "EAlış";
-            EAlış.ReadOnly = true;
-            EAlış.Resizable = DataGridViewTriState.False;
-            // 
-            // ESatış
-            // 
-            ESatış.HeaderText = "Efektif Satış";
-            ESatış.Name = "ESatış";
-            ESatış.ReadOnly = true;
-            ESatış.Resizable = DataGridViewTriState.False;
             // 
             // dateGroupBox
             // 
@@ -254,6 +202,62 @@
             sourceComboBox.TabIndex = 1;
             sourceComboBox.Text = "KKTCMB";
             // 
+            // Birim
+            // 
+            Birim.HeaderText = "Birim";
+            Birim.Name = "Birim";
+            Birim.ReadOnly = true;
+            Birim.Resizable = DataGridViewTriState.False;
+            Birim.Width = 65;
+            // 
+            // Sembol
+            // 
+            Sembol.HeaderText = "Sembol";
+            Sembol.Name = "Sembol";
+            Sembol.ReadOnly = true;
+            Sembol.Resizable = DataGridViewTriState.False;
+            Sembol.Width = 65;
+            // 
+            // İsim
+            // 
+            İsim.HeaderText = "İsim";
+            İsim.Name = "İsim";
+            İsim.ReadOnly = true;
+            İsim.Resizable = DataGridViewTriState.False;
+            İsim.Width = 169;
+            // 
+            // Alış
+            // 
+            Alış.HeaderText = "Döviz Alış";
+            Alış.Name = "Alış";
+            Alış.ReadOnly = true;
+            Alış.Resizable = DataGridViewTriState.False;
+            Alış.Width = 105;
+            // 
+            // Satış
+            // 
+            Satış.HeaderText = "Döviz Satış";
+            Satış.Name = "Satış";
+            Satış.ReadOnly = true;
+            Satış.Resizable = DataGridViewTriState.False;
+            Satış.Width = 105;
+            // 
+            // EAlış
+            // 
+            EAlış.HeaderText = "Efektif Alış";
+            EAlış.Name = "EAlış";
+            EAlış.ReadOnly = true;
+            EAlış.Resizable = DataGridViewTriState.False;
+            EAlış.Width = 105;
+            // 
+            // ESatış
+            // 
+            ESatış.HeaderText = "Efektif Satış";
+            ESatış.Name = "ESatış";
+            ESatış.ReadOnly = true;
+            ESatış.Resizable = DataGridViewTriState.False;
+            ESatış.Width = 105;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -291,6 +295,8 @@
         private GroupBox appGroupBox;
         private Button exitButton;
         private Button aboutButton;
+        private GroupBox sourceGroupBox;
+        private ComboBox sourceComboBox;
         private DataGridViewTextBoxColumn Birim;
         private DataGridViewTextBoxColumn Sembol;
         private DataGridViewTextBoxColumn İsim;
@@ -298,7 +304,5 @@
         private DataGridViewTextBoxColumn Satış;
         private DataGridViewTextBoxColumn EAlış;
         private DataGridViewTextBoxColumn ESatış;
-        private GroupBox sourceGroupBox;
-        private ComboBox sourceComboBox;
     }
 }

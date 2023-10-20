@@ -15,8 +15,6 @@ using System.Reflection;
 using System.Text;
 using System.Xml;
 
-using static System.Net.Mime.MediaTypeNames;
-
 namespace KKTCMB
 {
     public partial class Form1 : Form
@@ -24,6 +22,7 @@ namespace KKTCMB
 
         private readonly HttpClient client = new();
         private readonly SqlCeConnection connection = new($"Data Source={Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "", "Database.sdf")}");
+
 
         public Form1()
         {
@@ -80,28 +79,22 @@ namespace KKTCMB
             var isISO = selectedDate < new DateTime(2008, 2, 8);
 
             try {
-                
-
-                var response = await client.GetAsync((isTCMB ? "https://api.demirdelen.net/tcmb/kur/tarih/" : $"http://www.mb.gov.ct.tr/kur/tarih/") + $"{selectedDate:yyyyMMdd}");
+                var response = await client.GetAsync((isTCMB ? "https://api.demirdelen.net/tcmb/kur/tarih/" : "http://www.mb.gov.ct.tr/kur/tarih/") + $"{selectedDate:yyyyMMdd}");
                 if (!response.IsSuccessStatusCode)
                     throw new HttpRequestException("Kur bilgileri alınırken bir hata oluştu.");
 
                 var buffer = await response.Content.ReadAsByteArrayAsync();
-                var deneme = Encoding.GetEncoding("ISO-8859-9").GetString(buffer, 0, buffer.Length);
+                var content = Encoding.GetEncoding(isHTML ? (isISO ? "ISO-8859-9" : "UTF-16") : "UTF-8").GetString(buffer, 0, buffer.Length);
 
-                MessageBox.Show(deneme, "iso");
-                //return;
-
-                var content = await new StreamReader(await response.Content.ReadAsStreamAsync()).ReadToEndAsync();
                 if (content == "")
-                    throw new Exception("Seçili tarih için kur bilgileri bulunamadı.");
+                    throw new Exception("Seçili tarih için kur bilgileri alınamadı." + (isHTML ? "\nBu tarihin bir resmi tatile veya haftasonuna denk gelmediğinden emin olun." : ""));
 
                 if (isTCMB) {
                     ParseJSON(content);
                     return;
                 }
 
-                if (selectedDate < new DateTime(2011, 4, 9)) {
+                if (isHTML) {
                     ParseHTML(content);
                     return;
                 }
@@ -128,16 +121,24 @@ namespace KKTCMB
 
         private void ParseHTML(string content)
         {
-            MessageBox.Show(content);
-            var lines = content.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+            dataGridView.Rows.Clear();
+            dataGridView.Focus();
 
-            foreach(var line in lines.Skip(11)) {
+            var lines = content.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines.Skip(Array.FindLastIndex(lines, x => x.Contains("_____________________________")) + 1)) {
                 if (line.Replace(" ", "").Contains("ÇAPRAZ"))
                     break;
 
                 var chunks = line.Split("  ", StringSplitOptions.RemoveEmptyEntries);
+                var birim = chunks[0].Split(" ", 2);
+                var sadeceEf = chunks.Length < 5;
 
+                var culture = new CultureInfo("tr-TR", false);
+                dataGridView.Rows.Add(birim[0], IsoMap.GetISOCode(birim[1]), culture.TextInfo.ToTitleCase(birim[1].ToLower(culture)),
+                    sadeceEf ? "" : chunks[1], sadeceEf ? "" : chunks[2], chunks.ElementAtOrDefault(sadeceEf ? 1 : 3), chunks.ElementAtOrDefault(sadeceEf ? 2 : 4));
             }
+
+            saveButton.Enabled = true;
         }
 
         private void ParseJSON(string content)
